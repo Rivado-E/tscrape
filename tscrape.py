@@ -1,10 +1,12 @@
+import sqlite3
 import requests
 from time import time
 from bs4 import BeautifulSoup
-# import pandas as pd
+import pandas as pd
 from collections import defaultdict
 import asyncio
 term = "202401"  # spring24
+term = "202408"
 
 
 def getDepts():
@@ -45,7 +47,7 @@ async def classNames():
 # i am assuming the term is all the same
 async def aSectionsRequests(courses, term):
     url = f"https://app.testudo.umd.edu/soc/{term}/sections?"
-    tasks = [] 
+    tasks = []
     rstrings = []
     courseList = []
     for c in courses:
@@ -61,9 +63,9 @@ async def aSectionsRequests(courses, term):
 
 
 async def aSections(courses, url, courseList):
-    page = requests.get(url) 
+    page = requests.get(url)
     soup = BeautifulSoup(page.content, 'html.parser')
-    for c in courseList: 
+    for c in courseList:
         sections_percourse = []
         for course in soup.find_all('div', id=c):
             # if not course:
@@ -75,9 +77,9 @@ async def aSections(courses, url, courseList):
                 # if not sections:
                 #     print("second loop failed", c)
                 instructor = sections.find('span', class_= "section-instructor").text
-                total_seats =  sections.find('span', class_="total-seats-count").text
+                total_seats = sections.find('span', class_="total-seats-count").text
                 open_seats = sections.find('span', class_="open-seats-count").text
-                waitlist = sections.find('span', class_="waitlist-count").text 
+                waitlist = sections.find('span', class_="waitlist-count").text
                 possible = sections.find('div', class_='class-days-container')
                 secs = {}
                 if possible:
@@ -141,7 +143,29 @@ def run():
 if __name__ == "__main__":
     start_time = time()
     res = asyncio.run(classNames())
-    print("data", res[0])
-    print("courses", res[1])
+    # print("data", res[0])
+    # print("courses", res[1])
+    data = res[1]
+
+    flat_data = []
+    all_sections = []
+    for course_code, course_data in data.items():
+        if "sections" in course_data:
+            for section in course_data["sections"]:
+                flat_section = section.copy()
+                flat_section["course_code"] = course_code
+                flat_data.append(flat_section)
+
+    df = pd.DataFrame(flat_data)
+    df.to_csv("dfdf")
+    print(df.head())
+
+    database_filename = 'courses.db'
+    conn = sqlite3.connect(database_filename)
+    df.to_sql('courses', conn, if_exists='replace', index=False)
+
+    # Close the connection
+    conn.close()
+
     elapsed_time = (time() - start_time) / 60
     print(elapsed_time)

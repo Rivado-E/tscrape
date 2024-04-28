@@ -1,3 +1,8 @@
+dfdf
+*.ipynb
+sections.csv
+something.txt
+
 .secret
 # Byte-compiled / optimized / DLL files
 __pycache__/
